@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Ad Library Clipper",
+  "version": "1.0.0",
+  "description": "Copy ad body + CTA + link + creative from Meta Ad Library into Notion in one paste. Video ads auto-download the mp4.",
+  "permissions": [
+    "downloads",
+    "clipboardWrite",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://*.fbcdn.net/*",
+    "https://*.facebook.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.facebook.com/ads/library/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon128.png"
+  }
+}
