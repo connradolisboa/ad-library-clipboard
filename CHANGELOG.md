@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.0] — 2026-06-01
+
+### Added
+- **🗂 All ads** button on each card — opens that advertiser's full ad history
+  (active + inactive) in a new tab, preserving the current `country` filter.
+  Page ID is resolved via several fallback strategies (`getPageId`).
+- Poster-thumbnail fallback for video ads: if Meta still hasn't exposed the
+  `.mp4`, the ad's text plus its video thumbnail are copied.
+- Accessibility: both injected buttons are real, keyboard-focusable `<button>`s
+  with `aria-label` and a visible focus ring; toasts use `role="alert"` /
+  `aria-live`.
+
+### Changed
+- Content script split into dependency-free modules loaded in order
+  (`src/config.js`, `src/utils.js`, `src/harvest.js`, `src/clipboard.js`,
+  `src/main.js`) — no bundler or build step. All Meta-specific selectors now
+  live in `src/config.js`.
+- Video capture now nudges the player (muted autoplay) to expose the `.mp4`
+  before falling back to the "press play, then clip again" flow.
+- The two clipboard writers were consolidated into a single `writeAdToClipboard`.
+- More robust harvesting: CTA matching falls back from exact to contains; body
+  extraction falls back to the longest block instead of returning empty; the
+  body-noise filter and length threshold moved into `CONFIG`.
+
+### Fixed
+- Empty cards no longer copy a blank payload — they show a "Nothing to clip"
+  error toast instead.
+- Image bytes that are already PNG are passed through without a lossy canvas
+  re-encode.
+
 ## [1.0.0] — 2026-05-28
 
 ### Added
