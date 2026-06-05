@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.1] — 2026-06-05
+
+### Fixed
+- **🗂 All ads** now works from the grid view without first opening an ad's
+  detail view. `getPageId` previously only read the single card's DOM, where
+  the numeric page ID isn't present in the grid, causing a "couldn't find the
+  advertiser page ID" error. It now also resolves the ID from the card's
+  Library ID by looking it up in the page's embedded JSON (`<script>` results)
+  and in React fiber props (for ads loaded via infinite scroll).
+
 ## [1.1.0] — 2026-06-01
 
 ### Added

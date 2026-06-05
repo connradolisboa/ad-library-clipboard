@@ -95,7 +95,7 @@
   function handleOpenAll(card) {
     const pageId = getPageId(card);
     if (!pageId) {
-      toast("Couldn't find this advertiser's page ID. Open one ad's detail view and try again.", true);
+      toast("Couldn't find this advertiser's page ID. Scroll the card fully into view and try again.", true);
       return;
     }
     window.open(CONFIG.buildPageUrl(pageId), "_blank", "noopener");
