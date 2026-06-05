@@ -8,7 +8,7 @@
   const ALC = window.__ALC || {};
   const {
     CONFIG, toast, slugify,
-    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getPageId, getCreative,
+    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getPageId, getAdMeta, getCreative,
     writeAdToClipboard
   } = ALC;
 
@@ -130,6 +130,56 @@
     return btn;
   }
 
+  // ===========================================================================
+  // METADATA OVERLAY
+  // ===========================================================================
+  // A compact, read-only panel of research signals (active duration, page
+  // likes, CTA type, domain, platforms, versions) pulled from data already in
+  // the page. Skips any field we couldn't resolve.
+  function fmtNum(n) {
+    return typeof n === "number" ? n.toLocaleString() : n;
+  }
+
+  function buildMetaRows(m) {
+    const rows = [];
+
+    if (m.daysActive != null) {
+      const verb = m.isActive ? "Active" : "Ran";
+      rows.push([verb, `${fmtNum(m.daysActive)} day${m.daysActive === 1 ? "" : "s"}`]);
+    } else if (m.isActive === false) {
+      rows.push(["Status", "Inactive"]);
+    }
+    if (m.pageLikes != null) rows.push(["Page likes", fmtNum(m.pageLikes)]);
+    if (m.ctaType) rows.push(["CTA", String(m.ctaType)]);
+    if (m.domain) rows.push(["Domain", m.domain]);
+    if (m.platforms && m.platforms.length) rows.push(["Platforms", m.platforms.join(" · ")]);
+    if (m.versions != null && m.versions > 1) rows.push(["Versions", fmtNum(m.versions)]);
+
+    return rows;
+  }
+
+  function injectMetaOverlay(card, meta) {
+    const rows = buildMetaRows(meta);
+    if (!rows.length) return; // nothing resolved — don't show an empty box
+
+    const panel = document.createElement("div");
+    panel.className = "alc-meta";
+    for (const [label, value] of rows) {
+      const row = document.createElement("div");
+      row.className = "alc-meta-row";
+      const k = document.createElement("span");
+      k.className = "alc-meta-k";
+      k.textContent = label;
+      const v = document.createElement("span");
+      v.className = "alc-meta-v";
+      v.textContent = value;
+      row.appendChild(k);
+      row.appendChild(v);
+      panel.appendChild(row);
+    }
+    card.appendChild(panel);
+  }
+
   function injectButton(card) {
     if (card.dataset.alcDone === "1") return;
     card.dataset.alcDone = "1";
@@ -150,6 +200,7 @@
     );
     card.appendChild(clipBtn);
     card.appendChild(openAllBtn);
+    injectMetaOverlay(card, getAdMeta(card));
   }
 
   function scanAndInject() {

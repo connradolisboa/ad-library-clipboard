@@ -94,6 +94,48 @@
   color: #fff;
 }
 
+/* Read-only metadata panel: research signals pulled from the page's own data.
+   Sits under the two buttons in the top-right of each card. */
+.alc-meta {
+  position: absolute;
+  top: 44px;
+  right: 10px;
+  z-index: 999998;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  padding: 8px 10px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #06283d;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #1f6f8b;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(6, 40, 61, 0.2);
+  pointer-events: none;
+  user-select: none;
+}
+
+.alc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.alc-meta-k {
+  font-weight: 600;
+  color: #1f6f8b;
+}
+
+.alc-meta-v {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .alc-toast {
   position: fixed;
   bottom: 24px;

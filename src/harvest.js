@@ -236,6 +236,140 @@
     return null;
   }
 
+  // Bounded DFS for the WHOLE ad object — the node whose id field equals this
+  // card's Library ID. That object (and its `snapshot`) carries every extra
+  // field we surface: page likes, cta_type, caption, platforms, dates, etc.
+  function deepFindAdObject(obj, adId, seen, budget) {
+    if (!obj || typeof obj !== "object" || budget.n <= 0) return null;
+    if (seen.has(obj)) return null;
+    seen.add(obj);
+    budget.n--;
+    for (const k of ["ad_archive_id", "adArchiveID", "adArchiveId"]) {
+      if (String(obj[k]) === adId) return obj;
+    }
+    for (const key of Object.keys(obj)) {
+      const v = obj[key];
+      if (v && typeof v === "object") {
+        const hit = deepFindAdObject(v, adId, seen, budget);
+        if (hit) return hit;
+      }
+      if (budget.n <= 0) break;
+    }
+    return null;
+  }
+
+  // The live ad object from React fiber, keyed by Library ID. Null if not found
+  // (e.g. fiber not mounted yet) — callers fall back to DOM-derived values.
+  function getAdObject(card) {
+    const adId = getLibraryId(card);
+    if (!adId) return null;
+    let fiber = reactFiber(card);
+    for (let i = 0; i < 40 && fiber; i++) {
+      const obj =
+        deepFindAdObject(fiber.memoizedProps, adId, new WeakSet(), { n: 8000 }) ||
+        deepFindAdObject(fiber.memoizedState, adId, new WeakSet(), { n: 8000 });
+      if (obj) return obj;
+      fiber = fiber.return;
+    }
+    return null;
+  }
+
+  // ---- small typed readers, tolerant of camelCase/snake_case key spellings --
+  function firstVal(names, ...objs) {
+    for (const o of objs) {
+      if (!o) continue;
+      for (const n of names) {
+        const v = o[n];
+        if (v !== undefined && v !== null && v !== "") return v;
+      }
+    }
+    return null;
+  }
+
+  function toNum(v) {
+    if (v == null) return null;
+    const n = Number(String(v).replace(/[, ]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // Meta gives dates as unix-seconds, unix-ms, or an ISO/locale string.
+  function toDate(v) {
+    if (v == null) return null;
+    if (typeof v === "number" || /^\d+$/.test(String(v))) {
+      const n = Number(v);
+      return new Date(n < 1e12 ? n * 1000 : n); // seconds vs ms
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function hostOf(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const PLATFORM_LABELS = {
+    FACEBOOK: "Facebook", INSTAGRAM: "Instagram", MESSENGER: "Messenger",
+    AUDIENCE_NETWORK: "Audience Network", THREADS: "Threads", WHATSAPP: "WhatsApp"
+  };
+  function normPlatforms(v) {
+    if (!v) return [];
+    const arr = Array.isArray(v) ? v : [v];
+    return arr
+      .map((p) => PLATFORM_LABELS[String(p).toUpperCase()] || String(p))
+      .filter(Boolean);
+  }
+
+  // Parse the visible "Started running on May 12, 2026" line as a fallback when
+  // the fiber object isn't available.
+  function startDateFromDom(card) {
+    const text = card.innerText || "";
+    const m = text.match(/Started running on\s+(.+?)(?:\n|·|$)/i);
+    if (m) {
+      const d = new Date(m[1].trim());
+      if (!isNaN(d.getTime())) return d;
+    }
+    return null;
+  }
+
+  // Everything the overlay shows. Reads the structured ad object when present,
+  // otherwise derives what it can from the visible DOM. Purely passive — no
+  // network. Any field may be null; the renderer skips nulls.
+  function getAdMeta(card) {
+    const ad = getAdObject(card) || {};
+    const snap = ad.snapshot || ad.snapShot || ad;
+
+    const pageLikes = toNum(firstVal(["page_like_count", "pageLikeCount", "page_likes"], snap, ad));
+    const ctaType = firstVal(["cta_type", "ctaType"], snap, ad);
+    const versions = toNum(firstVal(["collation_count", "collationCount", "collation_total_count"], ad, snap));
+    const title = firstVal(["title"], snap);
+    const platforms = normPlatforms(firstVal(["publisher_platform", "publisherPlatform", "publisher_platforms"], ad, snap));
+
+    let domain = firstVal(["caption"], snap);
+    if (domain && /^https?:\/\//i.test(domain)) domain = hostOf(domain) || domain;
+    if (!domain) domain = hostOf(firstVal(["link_url", "linkUrl"], snap) || getLink(card));
+
+    let isActive = firstVal(["is_active", "isActive"], ad, snap);
+    if (isActive == null) isActive = !/\bInactive\b/i.test(card.innerText || "");
+
+    const startDate =
+      toDate(firstVal(["start_date", "startDate", "ad_delivery_start_time"], ad, snap)) ||
+      startDateFromDom(card);
+    const endDate = toDate(firstVal(["end_date", "endDate", "ad_delivery_stop_time"], ad, snap));
+
+    let daysActive = null;
+    if (startDate) {
+      const until = isActive || !endDate ? new Date() : endDate;
+      const d = Math.floor((until - startDate) / 86400000);
+      if (d >= 0) daysActive = d;
+    }
+
+    return { pageLikes, ctaType, domain, platforms, versions, title, isActive, startDate, endDate, daysActive };
+  }
+
   // Find the advertiser's numeric Page ID so we can open their full ad history.
   // Defensive, multi-strategy: cheap DOM reads first, then look the id up from
   // the page's embedded data keyed by the card's Library ID — that last part is
@@ -322,6 +456,7 @@
     getLink,
     getAdvertiser,
     getPageId,
+    getAdMeta,
     getCreative
   });
 })();

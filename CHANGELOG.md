@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] — 2026-06-05
+
+### Added
+- **Metadata overlay** on each card — a compact, read-only panel of research
+  signals: active duration ("Active 24 days"), page likes, CTA type
+  (`SHOP_NOW`), destination domain, publisher platforms, and number of ad
+  versions. Any field that can't be resolved is simply omitted.
+- `getAdMeta` reads these from the page's own data only — the card DOM, embedded
+  `<script>` JSON, and React fiber props (`getAdObject`). No network requests
+  are made, so nothing extra is sent to Meta. Falls back to DOM-derived values
+  (e.g. parsing "Started running on …" for the active duration) when the
+  structured ad object isn't available.
+
 ## [1.1.1] — 2026-06-05
 
 ### Fixed
