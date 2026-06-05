@@ -8,7 +8,8 @@
   const ALC = window.__ALC || {};
   const {
     CONFIG, toast, slugify,
-    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getPageId, getAdMeta, getCreative,
+    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getPageId, getAdMeta,
+    getLandingUrl, getShopifyLocal, getCreative,
     writeAdToClipboard
   } = ALC;
 
@@ -200,11 +201,19 @@
     );
     card.appendChild(clipBtn);
     card.appendChild(openAllBtn);
-    injectMetaOverlay(card, getAdMeta(card));
+
+    // Compute the ad's metadata ONCE: it feeds both the overlay and the filter
+    // toolbar (stashed on data-attributes so filtering stays a cheap DOM read).
+    const meta = getAdMeta(card);
+    injectMetaOverlay(card, meta);
+    card.dataset.alcDays = meta.daysActive == null ? "" : String(meta.daysActive);
+    card.dataset.alcShop = getShopifyLocal(card); // "shopify" | "unknown"
+    card.dataset.alcUrl = getLandingUrl(card);
   }
 
   function scanAndInject() {
     getAllCards().forEach(injectButton);
+    if (ALC.filters) ALC.filters.apply();
   }
 
   // ===========================================================================
@@ -223,6 +232,7 @@
   const observer = new MutationObserver(scheduleScan);
   observer.observe(document.body, { childList: true, subtree: true });
 
+  if (ALC.filters) ALC.filters.init();
   scanAndInject();
   toast("Ad Library Clipper ready — hover a card and click 📎 Clip or 🗂 All ads.");
 })();

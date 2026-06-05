@@ -370,6 +370,34 @@
     return { pageLikes, ctaType, domain, platforms, versions, title, isActive, startDate, endDate, daysActive };
   }
 
+  // The ad's real destination URL (already unwrapped from l.facebook.com by
+  // getLink). Used both for the domain readout and for network Shopify checks.
+  function getLandingUrl(card) {
+    const ad = getAdObject(card);
+    const snap = ad && (ad.snapshot || ad.snapShot || ad);
+    return firstVal(["link_url", "linkUrl"], snap) || getLink(card) || "";
+  }
+
+  // No-network Shopify detection: returns "shopify" only when we can tell from
+  // data ALREADY in the page; otherwise "unknown" (a custom-domain store can't
+  // be confirmed without fetching it — that's what the optional network check
+  // is for). Never returns "not" — absence of proof isn't proof of absence.
+  function getShopifyLocal(card) {
+    const host = (function () {
+      try { return new URL(getLandingUrl(card)).hostname.toLowerCase(); }
+      catch (_) { return ""; }
+    })();
+    if (/(^|\.)myshopify\.com$/.test(host)) return "shopify";
+
+    const re = /cdn\.shopify\.com|myshopify\.com|\/cdn\/shop\//i;
+    if (re.test(card.innerHTML || "")) return "shopify";
+    const ad = getAdObject(card);
+    if (ad) {
+      try { if (re.test(JSON.stringify(ad))) return "shopify"; } catch (_) {}
+    }
+    return "unknown";
+  }
+
   // Find the advertiser's numeric Page ID so we can open their full ad history.
   // Defensive, multi-strategy: cheap DOM reads first, then look the id up from
   // the page's embedded data keyed by the card's Library ID — that last part is
@@ -457,6 +485,8 @@
     getAdvertiser,
     getPageId,
     getAdMeta,
+    getLandingUrl,
+    getShopifyLocal,
     getCreative
   });
 })();

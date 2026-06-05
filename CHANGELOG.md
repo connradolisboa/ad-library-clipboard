@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.0] — 2026-06-05
+
+### Added
+- **Filter dock** (floating, bottom-left of the results) to narrow the grid
+  client-side:
+  - **Minimum active-duration** chips — 3 Days / 1 Week / 2 Weeks / 3 Weeks —
+    hide ads that haven't run at least that long (reuses each card's computed
+    `daysActive`). Single-select; click the active chip to clear.
+  - **Only Shopify / Hide Shopify** toggle to keep or drop Shopify-store ads.
+  - A live "N shown" count.
+- **Shopify detection**, two tiers:
+  - *No-network* (default): flags a store as Shopify only from data already in
+    the page (`*.myshopify.com` destinations + Shopify markers in the ad data).
+    Custom-domain stores stay "unknown".
+  - *Network* (opt-in via the **⚙ Network Shopify** switch): fetches each store
+    once in the service worker and sniffs for Shopify fingerprints, catching
+    custom-domain stores. Gated behind an **optional** `*://*/*` host permission
+    requested at toggle time, so users who don't opt in never grant site access.
+    Results are cached per domain.
+
+### Changed
+- Card metadata is now computed once per card and stashed on data-attributes
+  (`data-alc-days`, `data-alc-shop`, `data-alc-url`) so filtering is a cheap DOM
+  read shared with the overlay.
+- New content-script module `src/filters.js` (owns the dock + filtering); the
+  service worker gained a cached `SHOPIFY_CHECK` handler; manifest adds the
+  `storage` permission and `optional_host_permissions`.
+
 ## [1.2.0] — 2026-06-05
 
 ### Added
