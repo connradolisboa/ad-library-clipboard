@@ -59,6 +59,53 @@
   transform: translateY(0);
 }
 
+/* Third button: copy a permalink to this single ad. Sits to the left of the
+   "All ads" button and uses a violet tone so all three are easy to tell apart. */
+.alc-link-btn {
+  position: absolute;
+  top: 10px;
+  right: 188px;
+  z-index: 999999;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #2d0a4e;
+  background: #c8a8e9;
+  border: 1px solid #7b3fbf;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(45, 10, 78, 0.25);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+
+.alc-link-btn:hover {
+  background: #d9c2f1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45, 10, 78, 0.3);
+}
+
+.alc-link-btn:active {
+  transform: translateY(0);
+}
+
+.alc-link-btn.alc-done {
+  background: #2e7d32;
+  border-color: #1b5e20;
+  color: #fff;
+}
+
+.alc-link-btn.alc-error {
+  background: #c62828;
+  border-color: #8e0000;
+  color: #fff;
+}
+
 .alc-clip-btn:hover {
   background: #ffc766;
   transform: translateY(-1px);
@@ -71,7 +118,8 @@
 
 /* Keyboard focus: both injected buttons get a clearly visible ring. */
 .alc-clip-btn:focus-visible,
-.alc-openall-btn:focus-visible {
+.alc-openall-btn:focus-visible,
+.alc-link-btn:focus-visible {
   outline: 3px solid #1d4ed8;
   outline-offset: 2px;
 }

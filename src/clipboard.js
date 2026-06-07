@@ -8,15 +8,18 @@
   const { escapeHtml } = ALC;
 
   // Build the HTML payload in the sequence: Body, CTA, Link, Creative.
-  // Body is emitted as ONE block (a single <div> using <br> for line breaks)
-  // so Notion pastes it as a single text block instead of one block per line.
+  // The body keeps its original structure: a blank line (2+ newlines) starts a
+  // new paragraph (its own <div>, which Notion pastes as a separate block),
+  // while a single newline inside a paragraph stays a soft line break (<br>).
   function buildHtml({ body, cta, link, imageUrl }) {
     const parts = [];
     if (body) {
-      const bodyHtml = escapeHtml(body)
-        .replace(/\n{2,}/g, "\n") // blank lines -> single line break
-        .replace(/\n/g, "<br>");
-      parts.push(`<div>${bodyHtml}</div>`);
+      escapeHtml(body)
+        .replace(/\r\n/g, "\n")
+        .split(/\n{2,}/) // blank line separates paragraphs
+        .map((p) => p.trim().replace(/\n/g, "<br>")) // soft breaks within one
+        .filter(Boolean)
+        .forEach((p) => parts.push(`<div>${p}</div>`));
     }
     if (cta) parts.push(`<div><strong>CTA:</strong> ${escapeHtml(cta)}</div>`);
     if (link) parts.push(`<div><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></div>`);
@@ -68,5 +71,25 @@
     await navigator.clipboard.write([new ClipboardItem(items)]);
   }
 
-  Object.assign(ALC, { buildHtml, buildPlain, fetchImageBlob, writeAdToClipboard });
+  // Copy a single ad permalink. Writes BOTH a plain-text URL (pastes as a raw
+  // link anywhere) and a rich HTML anchor labeled with `label` (pastes into
+  // Notion/docs as a clickable named link). Falls back to writeText if the
+  // richer ClipboardItem path is unavailable.
+  async function writeLinkToClipboard({ url, label }) {
+    const text = label ? `${label} ${url}` : url;
+    const anchorText = escapeHtml(label || url);
+    const html = `<a href="${escapeHtml(url)}">${anchorText}</a>`;
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" })
+        })
+      ]);
+    } catch (e) {
+      await navigator.clipboard.writeText(text);
+    }
+  }
+
+  Object.assign(ALC, { buildHtml, buildPlain, fetchImageBlob, writeAdToClipboard, writeLinkToClipboard });
 })();

@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.1] — 2026-06-07
+
+### Fixed
+- **Ad body paragraphs/line breaks** are now preserved on paste. `buildHtml`
+  previously collapsed every blank line into a single line break, so multi-
+  paragraph ad copy pasted as one run-on block. The body now splits on blank
+  lines into separate paragraph blocks, keeping single newlines as soft line
+  breaks within each paragraph.
+
+## [1.4.0] — 2026-06-07
+
+### Added
+- **🔗 Link** button on each card — copies a permalink to that single ad
+  (`/ads/library/?id=<Library ID>`). Pasting the link and opening it lands
+  directly on the ad's detail view in the Ad Library. The link is written both
+  as plain text and as a rich HTML anchor labeled with the advertiser name, so
+  it pastes into Notion/docs as a clickable named link (with a `writeText`
+  fallback). New helpers: `CONFIG.buildAdUrl`, `writeLinkToClipboard`, and
+  `getLibraryId` is now exported from `harvest.js`.
+
 ## [1.3.0] — 2026-06-05
 
 ### Added

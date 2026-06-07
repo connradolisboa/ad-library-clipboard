@@ -8,9 +8,9 @@
   const ALC = window.__ALC || {};
   const {
     CONFIG, toast, slugify,
-    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getPageId, getAdMeta,
+    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getLibraryId, getPageId, getAdMeta,
     getLandingUrl, getShopifyLocal, getCreative,
-    writeAdToClipboard
+    writeAdToClipboard, writeLinkToClipboard
   } = ALC;
 
   // ===========================================================================
@@ -93,6 +93,39 @@
   // ===========================================================================
   // OPEN-ALL-ADS HANDLER
   // ===========================================================================
+  // ===========================================================================
+  // COPY-AD-LINK HANDLER
+  // ===========================================================================
+  // Copies a permalink to THIS ad (Library ID → /ads/library/?id=…). Clicking
+  // the copied link opens the ad's detail view in the Ad Library.
+  async function handleCopyLink(card, btn) {
+    const libraryId = getLibraryId(card);
+    if (!libraryId) {
+      toast("Couldn't read this ad's Library ID. Scroll the card fully into view and try again.", true);
+      return;
+    }
+    const url = CONFIG.buildAdUrl(libraryId);
+    const advertiser = getAdvertiser(card);
+    try {
+      await writeLinkToClipboard({ url, label: advertiser });
+      btn.classList.add("alc-done");
+      btn.textContent = "✓ Link copied";
+      setTimeout(() => resetLinkBtn(btn), 2000);
+      toast("Ad link copied — paste it to open this ad in the Ad Library.");
+    } catch (e) {
+      console.error("[ALC] copy link failed:", e);
+      btn.classList.add("alc-error");
+      btn.textContent = "Failed";
+      setTimeout(() => resetLinkBtn(btn), 2000);
+      toast("Couldn't copy the ad link: " + e.message, true);
+    }
+  }
+
+  function resetLinkBtn(btn) {
+    btn.classList.remove("alc-done", "alc-error");
+    btn.textContent = "🔗 Link";
+  }
+
   function handleOpenAll(card) {
     const pageId = getPageId(card);
     if (!pageId) {
@@ -199,8 +232,14 @@
       "Open all ads from this advertiser in a new tab",
       () => handleOpenAll(card)
     );
+    const linkBtn = makeButton(
+      "alc-link-btn", "🔗 Link",
+      "Copy a link to this ad",
+      () => handleCopyLink(card, linkBtn)
+    );
     card.appendChild(clipBtn);
     card.appendChild(openAllBtn);
+    card.appendChild(linkBtn);
 
     // Compute the ad's metadata ONCE: it feeds both the overlay and the filter
     // toolbar (stashed on data-attributes so filtering stays a cheap DOM read).

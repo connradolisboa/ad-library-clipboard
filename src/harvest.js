@@ -483,6 +483,7 @@
     getCTA,
     getLink,
     getAdvertiser,
+    getLibraryId,
     getPageId,
     getAdMeta,
     getLandingUrl,

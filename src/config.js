@@ -70,5 +70,14 @@
     return `https://www.facebook.com/ads/library/?${params.toString()}`;
   };
 
+  // --------------------------------------------------------------------------
+  // Permalink to a SINGLE ad, keyed by its Library ID (ad_archive_id).
+  // Opening this URL lands directly on that ad's detail view in the Ad Library.
+  // The `?id=` lookup is country-agnostic, so no filters are needed.
+  // --------------------------------------------------------------------------
+  CONFIG.buildAdUrl = function buildAdUrl(libraryId) {
+    return `https://www.facebook.com/ads/library/?id=${encodeURIComponent(libraryId)}`;
+  };
+
   ALC.CONFIG = CONFIG;
 })();
