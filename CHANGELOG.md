@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.2] — 2026-06-07
+
+### Fixed
+- **🗂 All ads** "Couldn't find this advertiser's page ID" failures. `getPageId`
+  now reads the page ID straight from the card's own ad-data object (located by
+  its Library ID via `getAdObject`) before falling back to the embedded-JSON and
+  broad fiber sweeps — the most accurate source in the grid view, and one that
+  also avoids picking a neighbouring ad's advertiser. The inline-JSON match now
+  also accepts `pageID`/`pageId` spellings, and a `console.debug` line reports
+  when every strategy misses.
+
 ## [1.4.1] — 2026-06-07
 
 ### Fixed

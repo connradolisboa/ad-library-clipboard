@@ -419,11 +419,25 @@
         if (id && /^\d+$/.test(id)) return id;
       } catch (_) {}
     }
-    // 3) Inline JSON Meta embeds in the card markup, e.g. "page_id":"123456".
-    const inline = card.innerHTML.match(/"page_id"\s*:\s*"?(\d{6,})"?/);
+    // 3) Inline JSON Meta embeds in the card markup, e.g. "page_id":"123456"
+    //    (also matches "pageID" / "pageId").
+    const inline = card.innerHTML.match(/"page_?id"\s*:\s*"?(\d{6,})"?/i);
     if (inline) return inline[1];
 
-    // 4) + 5) Look the id up by the card's Library ID — works in the grid view.
+    // 4) The card's OWN ad-data object (located by its Library ID). This is the
+    //    most accurate source in the grid view: the page_id read from this exact
+    //    node belongs to THIS advertiser, not whichever ad happened to be first
+    //    in a shared props blob. Prefer direct keys, then a bounded deep search.
+    const ad = getAdObject(card);
+    if (ad) {
+      const snap = ad.snapshot || ad.snapShot || ad;
+      const direct = firstVal(["page_id", "pageID", "pageId"], snap, ad);
+      if (direct != null && /^\d{5,}$/.test(String(direct))) return String(direct);
+      const deep = deepFindPageId(ad, new WeakSet(), { n: 8000 });
+      if (deep) return deep;
+    }
+
+    // 5) + 6) Look the id up by the card's Library ID — works in the grid view.
     const adId = getLibraryId(card);
     if (adId) {
       const fromJson = pageIdFromEmbeddedJson(adId);
@@ -432,6 +446,7 @@
     const fromFiber = pageIdFromFiber(card);
     if (fromFiber) return fromFiber;
 
+    console.debug("[ALC] getPageId: all strategies missed", { adId, hasAdObject: !!ad });
     return null;
   }
 
