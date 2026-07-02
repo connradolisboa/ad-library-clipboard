@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.5] — 2026-07-02
+
+### Fixed
+- **🗂 All ads** was unreliable because it depended on scraping the
+  advertiser's numeric `page_id` out of React fiber / embedded JSON, which
+  isn't always populated yet when a card is injected. It turns out opening an
+  ad's own permalink (`?id=<Library ID>`, the same URL the 🔗 **Link** button
+  already copies) lands on that advertiser with their full ad history loaded
+  in the background and the ad focused as a popup — so `handleOpenAll` now
+  just reuses `CONFIG.buildAdUrl` keyed off the card's Library ID (already the
+  most reliable field we read) instead of resolving a page ID at all. Removed
+  the now-dead `getPageId`/`buildPageUrl` page-ID lookup code.
+
+## [1.4.4] — 2026-07-02
+
+### Fixed
+- **Creative image** copy logged a spurious `TypeError: Failed to fetch`
+  console warning whenever the image-bytes fetch failed (CDN hiccup,
+  rate-limiting, etc.). The HTML `<img src>` fallback already made the paste
+  work fine in this case, so the warning was just noise — `writeAdToClipboard`
+  now swallows the failure silently instead of logging it.
+
+## [1.4.3] — 2026-06-27
+
+### Fixed
+- **🔗 Link** copied an unusable link. The plain-text clipboard payload was
+  `"<advertiser name> <url>"`, so pasting it into an address bar or search box
+  (which expect a bare URL) failed to navigate. `writeLinkToClipboard` now
+  always writes the bare URL as plain text; the advertiser-name label is still
+  attached as a rich HTML anchor for Notion/docs paste targets.
+- **🔗 Link** opened the ad in the wrong country (e.g. BR) when Facebook fell
+  back to the viewer's account locale. `CONFIG.buildAdUrl` now appends an
+  explicit `country` param, defaulting to `US` (preserving the current page's
+  country filter when one is set), instead of omitting it entirely.
+- **🗂 All ads** occasionally needed a page refresh to find the advertiser's
+  page ID. `getPageId`'s sources (React fiber, embedded JSON) can still be
+  populating right when a card is injected; `handleOpenAll` now retries the
+  lookup a few times over ~1s before giving up, instead of failing on the
+  first miss.
+
 ## [1.4.2] — 2026-06-07
 
 ### Fixed

@@ -64,30 +64,32 @@
         const pngBlob = await fetchImageBlob(imageUrl);
         if (pngBlob) items["image/png"] = pngBlob;
       } catch (e) {
-        console.warn("[ALC] image fetch failed, falling back to HTML img tag:", e);
+        // Image bytes unavailable (CDN hiccup, rate-limit, etc.) — the HTML
+        // <img src> fallback built above still gives Notion a working image.
       }
     }
 
     await navigator.clipboard.write([new ClipboardItem(items)]);
   }
 
-  // Copy a single ad permalink. Writes BOTH a plain-text URL (pastes as a raw
-  // link anywhere) and a rich HTML anchor labeled with `label` (pastes into
-  // Notion/docs as a clickable named link). Falls back to writeText if the
-  // richer ClipboardItem path is unavailable.
+  // Copy a single ad permalink. Writes BOTH a plain-text URL (pastes as a raw,
+  // working link anywhere — address bars, search boxes, chat) and a rich HTML
+  // anchor labeled with `label` (pastes into Notion/docs as a clickable named
+  // link). The plain text is ALWAYS just the bare URL — prefixing it with the
+  // advertiser name there would break paste targets that expect a navigable
+  // link. Falls back to writeText if the richer ClipboardItem path is unavailable.
   async function writeLinkToClipboard({ url, label }) {
-    const text = label ? `${label} ${url}` : url;
     const anchorText = escapeHtml(label || url);
     const html = `<a href="${escapeHtml(url)}">${anchorText}</a>`;
     try {
       await navigator.clipboard.write([
         new ClipboardItem({
           "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([text], { type: "text/plain" })
+          "text/plain": new Blob([url], { type: "text/plain" })
         })
       ]);
     } catch (e) {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(url);
     }
   }
 

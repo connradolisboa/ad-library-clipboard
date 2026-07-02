@@ -48,35 +48,23 @@
   CONFIG.minCreativeSize = 200;                     // [TUNE]
 
   // --------------------------------------------------------------------------
-  // "Open all Ads" target URL builder.
-  // Builds an Ad Library URL scoped to one advertiser's FULL history.
-  // Preserves the `country` filter from the current page when present.
+  // Permalink to a SINGLE ad, keyed by its Library ID (ad_archive_id).
+  // Opening this URL lands on that ad's advertiser with their full ad history
+  // loaded in the background and this ad focused as a popup — so it also
+  // serves as the "open all ads from this advertiser" link (see main.js's
+  // handleOpenAll). Without a `country` param Facebook falls back to the
+  // viewer's account locale, which can land on the wrong country's results —
+  // so default to US (preserving the current page's country filter when set).
   // --------------------------------------------------------------------------
-  CONFIG.buildPageUrl = function buildPageUrl(pageId) {
-    let country = "ALL";
+  CONFIG.buildAdUrl = function buildAdUrl(libraryId) {
+    let country = "US";
     try {
       const current = new URL(window.location.href).searchParams.get("country");
       if (current) country = current;
     } catch (_) {}
 
-    const params = new URLSearchParams({
-      active_status: "all",
-      ad_type: "all",
-      country,
-      view_all_page_id: String(pageId),
-      search_type: "page",
-      media_type: "all"
-    });
+    const params = new URLSearchParams({ id: String(libraryId), country });
     return `https://www.facebook.com/ads/library/?${params.toString()}`;
-  };
-
-  // --------------------------------------------------------------------------
-  // Permalink to a SINGLE ad, keyed by its Library ID (ad_archive_id).
-  // Opening this URL lands directly on that ad's detail view in the Ad Library.
-  // The `?id=` lookup is country-agnostic, so no filters are needed.
-  // --------------------------------------------------------------------------
-  CONFIG.buildAdUrl = function buildAdUrl(libraryId) {
-    return `https://www.facebook.com/ads/library/?id=${encodeURIComponent(libraryId)}`;
   };
 
   ALC.CONFIG = CONFIG;

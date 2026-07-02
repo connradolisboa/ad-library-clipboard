@@ -157,83 +157,11 @@
     return m ? m[1] : null;
   }
 
-  // Within a JSON-ish blob, return the page_id that sits CLOSEST to this ad's
-  // id. Each ad object keeps its ad_archive_id and page_id next to each other,
-  // so "nearest" reliably resolves to the right advertiser even when the blob
-  // holds many ads.
-  function pageIdNearAdId(text, adId) {
-    const idIdx = text.indexOf(adId);
-    if (idIdx === -1) return null;
-    const pageRe = /"(?:page_id|pageID)"\s*:\s*"?(\d{5,})"?/g;
-    let best = null;
-    let bestDist = Infinity;
-    let m;
-    while ((m = pageRe.exec(text))) {
-      const dist = Math.abs(m.index - idIdx);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = m[1];
-      }
-    }
-    return best;
-  }
-
-  // The Ad Library ships each result as JSON inside <script> tags. Find the
-  // page_id paired with THIS ad's Library ID.
-  function pageIdFromEmbeddedJson(adId) {
-    for (const s of document.scripts) {
-      const txt = s.textContent;
-      if (txt && txt.length < 5e6 && txt.indexOf(adId) !== -1) {
-        const hit = pageIdNearAdId(txt, adId);
-        if (hit) return hit;
-      }
-    }
-    return null;
-  }
-
   function reactFiber(el) {
     const key = Object.keys(el).find(
       (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
     );
     return key ? el[key] : null;
-  }
-
-  // Bounded DFS over a props/state object looking for a page_id (any casing).
-  function deepFindPageId(obj, seen, budget) {
-    if (!obj || typeof obj !== "object" || budget.n <= 0) return null;
-    if (seen.has(obj)) return null;
-    seen.add(obj);
-    budget.n--;
-    for (const key of Object.keys(obj)) {
-      if (/^page_?id$/i.test(key) && /^\d{5,}$/.test(String(obj[key]))) {
-        return String(obj[key]);
-      }
-    }
-    for (const key of Object.keys(obj)) {
-      const v = obj[key];
-      if (v && typeof v === "object") {
-        const hit = deepFindPageId(v, seen, budget);
-        if (hit) return hit;
-      }
-      if (budget.n <= 0) break;
-    }
-    return null;
-  }
-
-  // Ads loaded by infinite scroll aren't in <script> tags, but React still
-  // keeps their data in component props/state. Climb the fiber tree from the
-  // card and dig for a page_id.
-  function pageIdFromFiber(card) {
-    let fiber = reactFiber(card);
-    for (let i = 0; i < 40 && fiber; i++) {
-      const seen = new WeakSet();
-      const hit =
-        deepFindPageId(fiber.memoizedProps, seen, { n: 5000 }) ||
-        deepFindPageId(fiber.memoizedState, seen, { n: 5000 });
-      if (hit) return hit;
-      fiber = fiber.return;
-    }
-    return null;
   }
 
   // Bounded DFS for the WHOLE ad object — the node whose id field equals this
@@ -398,58 +326,6 @@
     return "unknown";
   }
 
-  // Find the advertiser's numeric Page ID so we can open their full ad history.
-  // Defensive, multi-strategy: cheap DOM reads first, then look the id up from
-  // the page's embedded data keyed by the card's Library ID — that last part is
-  // what lets "All ads" work straight from the grid, no detail view needed.
-  // Returns a string or null.
-  function getPageId(card) {
-    // 1) An anchor that already carries the id as a query param.
-    for (const a of card.querySelectorAll("a[href]")) {
-      try {
-        const params = new URL(a.href).searchParams;
-        const id = params.get("view_all_page_id") || params.get("page_id");
-        if (id && /^\d+$/.test(id)) return id;
-      } catch (_) {}
-    }
-    // 2) A profile link of the form facebook.com/profile.php?id=<digits>.
-    for (const a of card.querySelectorAll('a[href*="profile.php"]')) {
-      try {
-        const id = new URL(a.href).searchParams.get("id");
-        if (id && /^\d+$/.test(id)) return id;
-      } catch (_) {}
-    }
-    // 3) Inline JSON Meta embeds in the card markup, e.g. "page_id":"123456"
-    //    (also matches "pageID" / "pageId").
-    const inline = card.innerHTML.match(/"page_?id"\s*:\s*"?(\d{6,})"?/i);
-    if (inline) return inline[1];
-
-    // 4) The card's OWN ad-data object (located by its Library ID). This is the
-    //    most accurate source in the grid view: the page_id read from this exact
-    //    node belongs to THIS advertiser, not whichever ad happened to be first
-    //    in a shared props blob. Prefer direct keys, then a bounded deep search.
-    const ad = getAdObject(card);
-    if (ad) {
-      const snap = ad.snapshot || ad.snapShot || ad;
-      const direct = firstVal(["page_id", "pageID", "pageId"], snap, ad);
-      if (direct != null && /^\d{5,}$/.test(String(direct))) return String(direct);
-      const deep = deepFindPageId(ad, new WeakSet(), { n: 8000 });
-      if (deep) return deep;
-    }
-
-    // 5) + 6) Look the id up by the card's Library ID — works in the grid view.
-    const adId = getLibraryId(card);
-    if (adId) {
-      const fromJson = pageIdFromEmbeddedJson(adId);
-      if (fromJson) return fromJson;
-    }
-    const fromFiber = pageIdFromFiber(card);
-    if (fromFiber) return fromFiber;
-
-    console.debug("[ALC] getPageId: all strategies missed", { adId, hasAdObject: !!ad });
-    return null;
-  }
-
   // Returns { kind: 'video'|'image'|'none', url }.
   // For videos, Meta often only exposes the file URL once playback starts, so
   // we nudge it: play muted, wait briefly, re-read, then pause.
@@ -499,7 +375,6 @@
     getLink,
     getAdvertiser,
     getLibraryId,
-    getPageId,
     getAdMeta,
     getLandingUrl,
     getShopifyLocal,

@@ -8,7 +8,7 @@
   const ALC = window.__ALC || {};
   const {
     CONFIG, toast, slugify,
-    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getLibraryId, getPageId, getAdMeta,
+    getAllCards, getBodyText, getCTA, getLink, getAdvertiser, getLibraryId, getAdMeta,
     getLandingUrl, getShopifyLocal, getCreative,
     writeAdToClipboard, writeLinkToClipboard
   } = ALC;
@@ -126,13 +126,18 @@
     btn.textContent = "🔗 Link";
   }
 
+  // Opening an ad's own permalink (?id=<Library ID>) lands on that ad's
+  // advertiser with their full ad history loaded in the background and this
+  // ad focused as a popup — so it doubles as a reliable "all ads" link. That
+  // sidesteps hunting for the advertiser's numeric page_id (React fiber /
+  // embedded JSON), which isn't always populated yet when the card is injected.
   function handleOpenAll(card) {
-    const pageId = getPageId(card);
-    if (!pageId) {
-      toast("Couldn't find this advertiser's page ID. Scroll the card fully into view and try again.", true);
+    const libraryId = getLibraryId(card);
+    if (!libraryId) {
+      toast("Couldn't read this ad's Library ID. Scroll the card fully into view and try again.", true);
       return;
     }
-    window.open(CONFIG.buildPageUrl(pageId), "_blank", "noopener");
+    window.open(CONFIG.buildAdUrl(libraryId), "_blank", "noopener");
   }
 
   function done(btn, label) {
