@@ -1,0 +1,184 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+## [1.4.5] — 2026-07-02
+
+### Fixed
+- **🗂 All ads** was unreliable because it depended on scraping the
+  advertiser's numeric `page_id` out of React fiber / embedded JSON, which
+  isn't always populated yet when a card is injected. It turns out opening an
+  ad's own permalink (`?id=<Library ID>`, the same URL the 🔗 **Link** button
+  already copies) lands on that advertiser with their full ad history loaded
+  in the background and the ad focused as a popup — so `handleOpenAll` now
+  just reuses `CONFIG.buildAdUrl` keyed off the card's Library ID (already the
+  most reliable field we read) instead of resolving a page ID at all. Removed
+  the now-dead `getPageId`/`buildPageUrl` page-ID lookup code.
+
+## [1.4.4] — 2026-07-02
+
+### Fixed
+- **Creative image** copy logged a spurious `TypeError: Failed to fetch`
+  console warning whenever the image-bytes fetch failed (CDN hiccup,
+  rate-limiting, etc.). The HTML `<img src>` fallback already made the paste
+  work fine in this case, so the warning was just noise — `writeAdToClipboard`
+  now swallows the failure silently instead of logging it.
+
+## [1.4.3] — 2026-06-27
+
+### Fixed
+- **🔗 Link** copied an unusable link. The plain-text clipboard payload was
+  `"<advertiser name> <url>"`, so pasting it into an address bar or search box
+  (which expect a bare URL) failed to navigate. `writeLinkToClipboard` now
+  always writes the bare URL as plain text; the advertiser-name label is still
+  attached as a rich HTML anchor for Notion/docs paste targets.
+- **🔗 Link** opened the ad in the wrong country (e.g. BR) when Facebook fell
+  back to the viewer's account locale. `CONFIG.buildAdUrl` now appends an
+  explicit `country` param, defaulting to `US` (preserving the current page's
+  country filter when one is set), instead of omitting it entirely.
+- **🗂 All ads** occasionally needed a page refresh to find the advertiser's
+  page ID. `getPageId`'s sources (React fiber, embedded JSON) can still be
+  populating right when a card is injected; `handleOpenAll` now retries the
+  lookup a few times over ~1s before giving up, instead of failing on the
+  first miss.
+
+## [1.4.2] — 2026-06-07
+
+### Fixed
+- **🗂 All ads** "Couldn't find this advertiser's page ID" failures. `getPageId`
+  now reads the page ID straight from the card's own ad-data object (located by
+  its Library ID via `getAdObject`) before falling back to the embedded-JSON and
+  broad fiber sweeps — the most accurate source in the grid view, and one that
+  also avoids picking a neighbouring ad's advertiser. The inline-JSON match now
+  also accepts `pageID`/`pageId` spellings, and a `console.debug` line reports
+  when every strategy misses.
+
+## [1.4.1] — 2026-06-07
+
+### Fixed
+- **Ad body paragraphs/line breaks** are now preserved on paste. `buildHtml`
+  previously collapsed every blank line into a single line break, so multi-
+  paragraph ad copy pasted as one run-on block. The body now splits on blank
+  lines into separate paragraph blocks, keeping single newlines as soft line
+  breaks within each paragraph.
+
+## [1.4.0] — 2026-06-07
+
+### Added
+- **🔗 Link** button on each card — copies a permalink to that single ad
+  (`/ads/library/?id=<Library ID>`). Pasting the link and opening it lands
+  directly on the ad's detail view in the Ad Library. The link is written both
+  as plain text and as a rich HTML anchor labeled with the advertiser name, so
+  it pastes into Notion/docs as a clickable named link (with a `writeText`
+  fallback). New helpers: `CONFIG.buildAdUrl`, `writeLinkToClipboard`, and
+  `getLibraryId` is now exported from `harvest.js`.
+
+## [1.3.0] — 2026-06-05
+
+### Added
+- **Filter dock** (floating, bottom-left of the results) to narrow the grid
+  client-side:
+  - **Minimum active-duration** chips — 3 Days / 1 Week / 2 Weeks / 3 Weeks —
+    hide ads that haven't run at least that long (reuses each card's computed
+    `daysActive`). Single-select; click the active chip to clear.
+  - **Only Shopify / Hide Shopify** toggle to keep or drop Shopify-store ads.
+  - A live "N shown" count.
+- **Shopify detection**, two tiers:
+  - *No-network* (default): flags a store as Shopify only from data already in
+    the page (`*.myshopify.com` destinations + Shopify markers in the ad data).
+    Custom-domain stores stay "unknown".
+  - *Network* (opt-in via the **⚙ Network Shopify** switch): fetches each store
+    once in the service worker and sniffs for Shopify fingerprints, catching
+    custom-domain stores. Gated behind an **optional** `*://*/*` host permission
+    requested at toggle time, so users who don't opt in never grant site access.
+    Results are cached per domain.
+
+### Changed
+- Card metadata is now computed once per card and stashed on data-attributes
+  (`data-alc-days`, `data-alc-shop`, `data-alc-url`) so filtering is a cheap DOM
+  read shared with the overlay.
+- New content-script module `src/filters.js` (owns the dock + filtering); the
+  service worker gained a cached `SHOPIFY_CHECK` handler; manifest adds the
+  `storage` permission and `optional_host_permissions`.
+
+## [1.2.0] — 2026-06-05
+
+### Added
+- **Metadata overlay** on each card — a compact, read-only panel of research
+  signals: active duration ("Active 24 days"), page likes, CTA type
+  (`SHOP_NOW`), destination domain, publisher platforms, and number of ad
+  versions. Any field that can't be resolved is simply omitted.
+- `getAdMeta` reads these from the page's own data only — the card DOM, embedded
+  `<script>` JSON, and React fiber props (`getAdObject`). No network requests
+  are made, so nothing extra is sent to Meta. Falls back to DOM-derived values
+  (e.g. parsing "Started running on …" for the active duration) when the
+  structured ad object isn't available.
+
+## [1.1.1] — 2026-06-05
+
+### Fixed
+- **🗂 All ads** now works from the grid view without first opening an ad's
+  detail view. `getPageId` previously only read the single card's DOM, where
+  the numeric page ID isn't present in the grid, causing a "couldn't find the
+  advertiser page ID" error. It now also resolves the ID from the card's
+  Library ID by looking it up in the page's embedded JSON (`<script>` results)
+  and in React fiber props (for ads loaded via infinite scroll).
+
+## [1.1.0] — 2026-06-01
+
+### Added
+- **🗂 All ads** button on each card — opens that advertiser's full ad history
+  (active + inactive) in a new tab, preserving the current `country` filter.
+  Page ID is resolved via several fallback strategies (`getPageId`).
+- Poster-thumbnail fallback for video ads: if Meta still hasn't exposed the
+  `.mp4`, the ad's text plus its video thumbnail are copied.
+- Accessibility: both injected buttons are real, keyboard-focusable `<button>`s
+  with `aria-label` and a visible focus ring; toasts use `role="alert"` /
+  `aria-live`.
+
+### Changed
+- Content script split into dependency-free modules loaded in order
+  (`src/config.js`, `src/utils.js`, `src/harvest.js`, `src/clipboard.js`,
+  `src/main.js`) — no bundler or build step. All Meta-specific selectors now
+  live in `src/config.js`.
+- Video capture now nudges the player (muted autoplay) to expose the `.mp4`
+  before falling back to the "press play, then clip again" flow.
+- The two clipboard writers were consolidated into a single `writeAdToClipboard`.
+- More robust harvesting: CTA matching falls back from exact to contains; body
+  extraction falls back to the longest block instead of returning empty; the
+  body-noise filter and length threshold moved into `CONFIG`.
+
+### Fixed
+- Empty cards no longer copy a blank payload — they show a "Nothing to clip"
+  error toast instead.
+- Image bytes that are already PNG are passed through without a lossy canvas
+  re-encode.
+
+## [1.0.0] — 2026-05-28
+
+### Added
+- Floating **📎 Clip** button injected onto each ad card in the Meta Ad Library
+  (both grid view and detail view).
+- One-click copy of an ad's **Body → CTA → Link → Creative** to the clipboard,
+  formatted so it pastes into Notion in that sequence.
+- Image ads: body, CTA, link, and image copied together in a single paste.
+  Embeds the actual image bytes when CORS allows, falls back to an `<img src>`
+  reference otherwise.
+- Video ads: body, CTA, and link copied to clipboard; the `.mp4` auto-downloads
+  to `Downloads/ad-library/` for manual drag into Notion.
+- Body text emitted as a single block (one `<div>` with `<br>` line breaks,
+  blank lines collapsed) so it pastes as one Notion text block.
+- Auto-expands folded ad bodies ("See more") before harvesting.
+- Structure-based card detection that adapts to Meta's grid and detail layouts,
+  with nested-match deduplication (one button per card).
+- MutationObserver re-scan to catch ads loaded via infinite scroll.
+
+### Known limitations
+- The clipboard cannot carry a playable video; video ads require the
+  download-and-drag flow. Full automatic video→Notion is planned for v2 (Notion API).
+- Video URL capture requires the ad video to have been played at least once
+  (Meta lazy-loads the `.mp4`).
+- Whether the body stays a single block on paste ultimately depends on Notion's
+  paste parser.
+- Selectors depend on Meta's DOM and may need tuning when Meta updates the
+  Ad Library (see the `CONFIG` block in `content.js`).

@@ -1,0 +1,294 @@
+/* content.css — floating button injected onto each ad card + toast feedback */
+
+.alc-clip-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 999999;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #1a1007;
+  background: #f9b64b;
+  border: 1px solid #e8621a;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(26, 16, 7, 0.25);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+
+/* Second button: open the advertiser's full ad history in a new tab.
+   Mirrors the clip button but sits to its left and uses a cool tone so the two
+   are easy to tell apart. */
+.alc-openall-btn {
+  position: absolute;
+  top: 10px;
+  right: 96px;
+  z-index: 999999;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #06283d;
+  background: #8ecae6;
+  border: 1px solid #1f6f8b;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(6, 40, 61, 0.25);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+
+.alc-openall-btn:hover {
+  background: #aedcf0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(6, 40, 61, 0.3);
+}
+
+.alc-openall-btn:active {
+  transform: translateY(0);
+}
+
+/* Third button: copy a permalink to this single ad. Sits to the left of the
+   "All ads" button and uses a violet tone so all three are easy to tell apart. */
+.alc-link-btn {
+  position: absolute;
+  top: 10px;
+  right: 188px;
+  z-index: 999999;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #2d0a4e;
+  background: #c8a8e9;
+  border: 1px solid #7b3fbf;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(45, 10, 78, 0.25);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+}
+
+.alc-link-btn:hover {
+  background: #d9c2f1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45, 10, 78, 0.3);
+}
+
+.alc-link-btn:active {
+  transform: translateY(0);
+}
+
+.alc-link-btn.alc-done {
+  background: #2e7d32;
+  border-color: #1b5e20;
+  color: #fff;
+}
+
+.alc-link-btn.alc-error {
+  background: #c62828;
+  border-color: #8e0000;
+  color: #fff;
+}
+
+.alc-clip-btn:hover {
+  background: #ffc766;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(26, 16, 7, 0.3);
+}
+
+.alc-clip-btn:active {
+  transform: translateY(0);
+}
+
+/* Keyboard focus: both injected buttons get a clearly visible ring. */
+.alc-clip-btn:focus-visible,
+.alc-openall-btn:focus-visible,
+.alc-link-btn:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.alc-clip-btn.alc-busy {
+  background: #d8d0c4;
+  border-color: #b8ad9c;
+  cursor: wait;
+}
+
+.alc-clip-btn.alc-done {
+  background: #2e7d32;
+  border-color: #1b5e20;
+  color: #fff;
+}
+
+.alc-clip-btn.alc-error {
+  background: #c62828;
+  border-color: #8e0000;
+  color: #fff;
+}
+
+/* Floating filter dock pinned to the bottom-left of the viewport. Stays out of
+   Facebook's own UI instead of fighting its React-controlled toolbar. */
+.alc-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 9999998;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 92vw;
+  padding: 8px 10px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  color: #06283d;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #1f6f8b;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(6, 40, 61, 0.25);
+}
+
+.alc-bar-title {
+  font-weight: 700;
+  color: #1f6f8b;
+  margin-right: 2px;
+}
+
+.alc-bar-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  background: #c5dbe4;
+}
+
+.alc-fchip {
+  padding: 5px 10px;
+  font: inherit;
+  font-weight: 600;
+  color: #06283d;
+  background: #eef6fa;
+  border: 1px solid #9cc4d4;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.alc-fchip:hover {
+  background: #dcecf4;
+}
+
+.alc-fchip.alc-on {
+  color: #fff;
+  background: #1f6f8b;
+  border-color: #15596f;
+}
+
+.alc-fchip:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.alc-net {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 4px;
+  font-weight: 600;
+  color: #15596f;
+  cursor: pointer;
+  user-select: none;
+}
+
+.alc-bar-count {
+  margin-left: 2px;
+  font-weight: 600;
+  color: #5a7886;
+}
+
+/* Read-only metadata panel: research signals pulled from the page's own data.
+   Sits under the two buttons in the top-right of each card. */
+.alc-meta {
+  position: absolute;
+  top: 44px;
+  right: 10px;
+  z-index: 999998;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  padding: 8px 10px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #06283d;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #1f6f8b;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(6, 40, 61, 0.2);
+  pointer-events: none;
+  user-select: none;
+}
+
+.alc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.alc-meta-k {
+  font-weight: 600;
+  color: #1f6f8b;
+}
+
+.alc-meta-v {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alc-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 9999999;
+  padding: 12px 20px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: #1a1007;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  max-width: 480px;
+}
+
+.alc-toast.alc-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.alc-toast.alc-toast-error {
+  background: #8e0000;
+}
