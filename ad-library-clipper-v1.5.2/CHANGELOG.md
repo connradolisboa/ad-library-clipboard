@@ -2,6 +2,45 @@
 
 All notable changes to this project are documented here.
 
+## [1.5.2] — 2026-08-24
+
+### Fixed
+- **Body text truncated on clip.** `getBodyText`'s "longest block" scan
+  included our own injected metadata overlay (`.alc-meta`, appended into the
+  card by `injectMetaOverlay`), which could out-compete or dilute the real ad
+  copy; overlay elements are now excluded from candidate blocks. Also
+  replaced the fixed 120ms wait after clicking "See more" with a poll (up to
+  ~960ms) for the card's text to actually grow, so slower expansions on
+  larger cards no longer get read before Meta finishes expanding them.
+
+### Changed
+- **📓 Obsidian callout** link line now renders as `[Ad Link](url)` instead
+  of the bare URL, which some clients (and Obsidian itself, depending on
+  settings) were expanding into a cluttered `[url](url)` on paste.
+
+## [1.5.1] — 2026-08-24
+
+### Changed
+- **📓 Obsidian callout** mode now attaches the real `image/png` bytes
+  alongside the callout text (same as the regular Notion path), instead of
+  relying solely on a markdown `![]()` URL reference. This is unverified
+  against Obsidian's actual paste-handler priority when both a file and text
+  are offered together — revert to text-only + URL reference if pasting
+  drops the callout text in favor of just the image attachment.
+
+## [1.5.0] — 2026-08-24
+
+### Added
+- **📓 Obsidian callout** toggle in the filter dock — switches **📎 Clip** to
+  copy a single plain-text `> [!ads]-` callout block (body → CTA → link →
+  `![Ad creative](url)`) instead of the Notion-rich HTML/image payload, so it
+  pastes cleanly into Obsidian's markdown editor. Persisted to
+  `chrome.storage.local` (`alc_markdown_callout`) and read fresh on every clip.
+  New `buildMarkdownCallout` helper in `clipboard.js`; `writeAdToClipboard`
+  writes plain text only in this mode (no `text/html`/`image/png`) since
+  Obsidian's paste handler treats an attached image as a file drop and would
+  otherwise swallow the callout text.
+
 ## [1.4.5] — 2026-07-02
 
 ### Fixed

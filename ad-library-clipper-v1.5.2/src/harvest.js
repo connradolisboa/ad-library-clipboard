@@ -75,16 +75,32 @@
 
   // Expand a folded "... See more" body if present, then read the full text.
   async function getBodyText(card) {
-    const candidates = [...card.querySelectorAll('div[role="button"], span[role="button"], a')];
+    // Our own injected metadata overlay lives inside the card (see main.js's
+    // injectMetaOverlay) and is built from div/span elements, so it would
+    // otherwise compete with the real ad copy in the "longest block" scan
+    // below — exclude anything under it.
+    const isOwnUi = (el) => !!(el.closest && el.closest(".alc-meta"));
+
+    const candidates = [...card.querySelectorAll('div[role="button"], span[role="button"], a')]
+      .filter((c) => !isOwnUi(c));
     const seeMore = candidates.find((c) =>
       CONFIG.seeMoreText.test((c.textContent || "").trim())
     );
     if (seeMore) {
+      const before = (card.innerText || "").length;
       seeMore.click();
-      await sleep(CONFIG.seeMoreDelayMs);
+      // How long the expansion takes to land in the DOM varies with card size
+      // and network speed — poll for the text to actually grow instead of a
+      // single fixed delay, which could read the body before Meta finished
+      // expanding it and silently truncate to the folded preview.
+      for (let i = 0; i < 8; i++) {
+        await sleep(CONFIG.seeMoreDelayMs);
+        if ((card.innerText || "").length > before) break;
+      }
     }
 
     const blocks = [...card.querySelectorAll("div, span")]
+      .filter((el) => !isOwnUi(el))
       .map((el) => (el.innerText || "").trim())
       .filter(Boolean);
 

@@ -31,6 +31,50 @@
     return [body, cta ? `CTA: ${cta}` : "", link].filter(Boolean).join("\n\n");
   }
 
+  // Build a single Obsidian-style callout block: `> [!ads]-` folded by default,
+  // with every field on its own quoted line. A bare ">" is used for blank
+  // continuation lines so Obsidian keeps them inside the callout instead of
+  // treating them as the end of the block.
+  function buildMarkdownCallout({ body, cta, link, imageUrl }) {
+    const lines = ["> [!ads]-"];
+    let hasContent = false;
+    const pushBlank = () => lines.push(">");
+    const pushLine = (text) => lines.push(text ? `> ${text}` : ">");
+
+    if (body) {
+      body
+        .replace(/\r\n/g, "\n")
+        .split(/\n{2,}/) // blank line separates paragraphs
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .forEach((paragraph, i) => {
+          if (i > 0) pushBlank();
+          const paraLines = paragraph.split("\n");
+          paraLines.forEach((line, j) => {
+            // Two trailing spaces force a markdown hard line break.
+            pushLine(j < paraLines.length - 1 ? `${line}  ` : line);
+          });
+          hasContent = true;
+        });
+    }
+    if (cta) {
+      if (hasContent) pushBlank();
+      pushLine(`**CTA:** ${cta}`);
+      hasContent = true;
+    }
+    if (link) {
+      if (hasContent) pushBlank();
+      pushLine(`[Ad Link](${link})`);
+      hasContent = true;
+    }
+    if (imageUrl) {
+      if (hasContent) pushBlank();
+      pushLine(`![Ad creative](${imageUrl})`);
+    }
+
+    return lines.join("\n");
+  }
+
   // Fetch an image and return a PNG blob (Notion pastes image/png as an image
   // block). Already-PNG bytes are passed through untouched to avoid a lossy
   // canvas round-trip; everything else is re-encoded.
@@ -50,14 +94,20 @@
     }
   }
 
-  // One consolidated writer. Always writes HTML + plain text; when an imageUrl
-  // is present it additionally tries to embed the real image bytes so Notion
-  // makes a true image block (falling back to the HTML <img src> if blocked).
-  async function writeAdToClipboard({ body, cta, link, imageUrl }) {
-    const items = {
-      "text/html": new Blob([buildHtml({ body, cta, link, imageUrl })], { type: "text/html" }),
-      "text/plain": new Blob([buildPlain({ body, cta, link })], { type: "text/plain" })
-    };
+  // One consolidated writer. Always writes text; when an imageUrl is present it
+  // additionally tries to embed the real image bytes as image/png (falling
+  // back to the HTML <img src> / markdown ![]() reference if blocked).
+  //
+  // markdownCallout switches the text flavor to a single Obsidian callout
+  // block (text/plain only, no text/html) but still attaches the real
+  // image/png bytes alongside it.
+  async function writeAdToClipboard({ body, cta, link, imageUrl, markdownCallout }) {
+    const items = markdownCallout
+      ? { "text/plain": new Blob([buildMarkdownCallout({ body, cta, link, imageUrl })], { type: "text/plain" }) }
+      : {
+          "text/html": new Blob([buildHtml({ body, cta, link, imageUrl })], { type: "text/html" }),
+          "text/plain": new Blob([buildPlain({ body, cta, link })], { type: "text/plain" })
+        };
 
     if (imageUrl) {
       try {
@@ -65,7 +115,8 @@
         if (pngBlob) items["image/png"] = pngBlob;
       } catch (e) {
         // Image bytes unavailable (CDN hiccup, rate-limit, etc.) — the HTML
-        // <img src> fallback built above still gives Notion a working image.
+        // <img src> / markdown ![]() fallback built above still gives the
+        // paste target a working image reference.
       }
     }
 
@@ -93,5 +144,5 @@
     }
   }
 
-  Object.assign(ALC, { buildHtml, buildPlain, fetchImageBlob, writeAdToClipboard, writeLinkToClipboard });
+  Object.assign(ALC, { buildHtml, buildPlain, buildMarkdownCallout, fetchImageBlob, writeAdToClipboard, writeLinkToClipboard });
 })();

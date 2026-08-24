@@ -14,6 +14,7 @@
   const ALC = (window.__ALC = window.__ALC || {});
 
   const STORAGE_KEY = "alc_network_shopify";
+  const STORAGE_KEY_MD = "alc_markdown_callout";
 
   // Already-injected cards, selected by data-attribute so HIDDEN cards are still
   // found — getAllCards() relies on innerText, which is empty under display:none,
@@ -33,7 +34,8 @@
   const state = {
     minDays: 0,            // 0 = no duration filter
     shopify: "off",        // "off" | "only" | "hide"
-    network: false         // network detection opted-in?
+    network: false,        // network detection opted-in?
+    markdownCallout: false // copy clips as an Obsidian callout block instead of Notion-rich HTML?
   };
 
   let bar = null;
@@ -209,6 +211,21 @@
       "Requires the optional 'access all sites' permission.";
     bar.appendChild(net);
 
+    // Copy-format opt-in: plain Obsidian callout block instead of Notion-rich HTML.
+    const md = document.createElement("label");
+    md.className = "alc-net alc-net-md";
+    const mdCb = document.createElement("input");
+    mdCb.type = "checkbox";
+    mdCb.checked = state.markdownCallout;
+    mdCb.addEventListener("change", () => {
+      state.markdownCallout = mdCb.checked;
+      try { chrome.storage.local.set({ [STORAGE_KEY_MD]: state.markdownCallout }); } catch (_) {}
+    });
+    md.appendChild(mdCb);
+    md.appendChild(document.createTextNode("📓 Obsidian callout"));
+    md.title = "Copy clips as a '> [!ads]' Obsidian callout block instead of Notion-rich HTML.";
+    bar.appendChild(md);
+
     countEl = document.createElement("span");
     countEl.className = "alc-bar-count";
     bar.appendChild(countEl);
@@ -261,7 +278,15 @@
         });
       });
     } catch (_) {}
+    try {
+      chrome.storage.local.get(STORAGE_KEY_MD, (res) => {
+        if (!res || !res[STORAGE_KEY_MD]) return;
+        state.markdownCallout = true;
+        const cb = bar.querySelector(".alc-net-md input");
+        if (cb) cb.checked = true;
+      });
+    } catch (_) {}
   }
 
-  ALC.filters = { init, apply };
+  ALC.filters = { init, apply, isMarkdownCallout: () => state.markdownCallout };
 })();

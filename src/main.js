@@ -38,6 +38,8 @@
       const link = getLink(card);
       const advertiser = getAdvertiser(card);
       const creative = await getCreative(card);
+      const markdownCallout = ALC.filters ? ALC.filters.isMarkdownCallout() : false;
+      const dest = markdownCallout ? "Obsidian" : "Notion";
 
       // Guard: never copy an empty payload.
       const hasCreative = creative.kind === "image" || (creative.kind === "video" && (creative.url || creative.poster));
@@ -51,32 +53,32 @@
       }
 
       if (creative.kind === "image") {
-        await writeAdToClipboard({ body, cta, link, imageUrl: creative.url });
-        done(btn, "Copied — paste into Notion");
-        toast("Image ad copied. Paste into Notion → Body, CTA, Link, Creative.");
+        await writeAdToClipboard({ body, cta, link, imageUrl: creative.url, markdownCallout });
+        done(btn, `Copied — paste into ${dest}`);
+        toast(`Image ad copied. Paste into ${dest}.`);
       } else if (creative.kind === "video") {
         if (creative.url) {
-          await writeAdToClipboard({ body, cta, link, imageUrl: "" });
+          await writeAdToClipboard({ body, cta, link, imageUrl: "", markdownCallout });
           const r = await downloadVideo(creative.url, advertiser);
           if (r.ok) {
             done(btn, "Copied + video downloading");
-            toast("Text copied. Video downloading to Downloads/ad-library — drag it into Notion after pasting.");
+            toast(`Text copied. Video downloading to Downloads/ad-library — drag it into ${dest} after pasting.`);
           } else {
             done(btn, "Text copied (video failed)");
             toast("Text copied, but the video file couldn't be downloaded. Press play on the video, then clip again.", true);
           }
         } else if (creative.poster) {
           // No file URL even after nudging playback — copy the poster thumbnail.
-          await writeAdToClipboard({ body, cta, link, imageUrl: creative.poster });
+          await writeAdToClipboard({ body, cta, link, imageUrl: creative.poster, markdownCallout });
           done(btn, "Copied (poster only)");
           toast("Copied text + the video's thumbnail. Press play on the video, then clip again to grab the full mp4.", true);
         } else {
-          await writeAdToClipboard({ body, cta, link, imageUrl: "" });
+          await writeAdToClipboard({ body, cta, link, imageUrl: "", markdownCallout });
           done(btn, "Text copied (no video URL)");
           toast("Text copied. Meta hasn't exposed the video file yet — press play on the ad video, then click Clip again.", true);
         }
       } else {
-        await writeAdToClipboard({ body, cta, link, imageUrl: "" });
+        await writeAdToClipboard({ body, cta, link, imageUrl: "", markdownCallout });
         done(btn, "Text copied (no creative)");
         toast("Copied text/link/CTA. No image or video detected in this card.", true);
       }
